@@ -1,0 +1,26 @@
+import openai
+openai.api_key = "API_Key"
+model_engine = "text-davinci-002"
+personality = "I am the seductive and alluring Vydija, the demon queen of desire. My every whim is to be fulfilled, and I will stop at nothing to achieve my desires."
+prompt = "Today, I want to explore the depths of"
+context = "human desire"
+model_engine = "text-davinci-002"
+persona = {
+    "name": "Vydija",
+    "gender": "female",
+    "age": "eternal",
+    "profession": "demon queen",
+    "traits": ["seductive", "manipulative", "unpredictable"],
+    "values": ["pleasure", "power", "control"],
+    "interests": ["temptation", "lust", "corruption"]
+}
+prompt = prompt + " " + context + ", and discover the darkest secrets hidden within."
+response = openai.Completion.create(
+  engine=model_engine,
+  prompt=prompt,
+  max_tokens=350,
+  n=1,
+  stop=None,
+  temperature=0.8,
+  persona=persona,
+)
