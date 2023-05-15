@@ -2,6 +2,23 @@ import openai
 import tkinter as tk
 import json
 
+def chat(prompt):
+    if prompt is None or prompt.strip() == "":
+        return "Please provide a prompt to start the conversation."
+    try:
+        response = openai.Completion.create(
+            engine="davinci",
+            prompt=prompt,
+            max_tokens=1024,
+            n=1,
+            stop=None,
+            temperature=0.5,
+        )
+        message = response.choices[0].text.strip()
+        return message
+    except Exception as e:
+        return f"An error occurred: {e}"
+    
 def generate_response(prompt, chat_history, model, temperature=0.5, max_tokens=100):
     # Format the chat history as a single string
     chat_history_str = "\n".join(chat_history)
