@@ -1,73 +1,81 @@
-import tkinter as tk
 import openai
+import tkinter as tk
 
+def generate_response(prompt, chat_history, model, temperature=0.5, max_tokens=100):
+    # Format the chat history as a single string
+    chat_history_str = "\n".join(chat_history)
 
-# Load OpenAI API key from environment variable
-openai.api_key = "API_Key"
+    # Create the prompt for the AI
+    prompt_str = f"{prompt}\n{chat_history_str}\nUser:"
 
-# Define GPT-3 prompt with persona text
-model_engine = "text-davinci-002"
-persona = """
-Name: 
-Age: 
-Occupation: 
-Location: 
-Hobbies: 
-Education: 
-Personality Traits: 
-"""
-prompt = f"Create a persona for OpenAI's GPT-3:\n{persona}\n"
+    # Generate the AI's response
+    response = openai.Completion.create(
+        engine=model,
+        prompt=prompt_str,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        n=1,
+        stop=None,
+        frequency_penalty=0,
+        presence_penalty=0,
+        api_key=openai.api_key
+    )
 
-# Define function to call GPT-3 API and display response
-def generate_personality():
-    # Get persona text from user input
-    persona_text = persona_entry.get("1.0", "end-1c")
+    # Extract the first choice from the response and return it
+    choice = response.choices[0].text
+    return choice.strip()
+
+def send_message(event=None):
+    # Get the user's input
+    user_input = user_input_box.get()
     
-    # Update GPT-3 prompt with persona text
-    prompt = f"Create a persona for OpenAI's GPT-3:\n{persona_text}\n"
+    # Clear the user input box
+    user_input_box.delete(0, tk.END)
     
-    # Call GPT-3 API to generate response
-    try:
-        completions = openai.Completion.create(
-            engine=model_engine,
-            prompt=prompt,
-            max_tokens=1024,
-            n=1,
-            stop=None,
-            temperature=0.5,
-            frequency_penalty=0,
-            presence_penalty=0,
-        )
-        response = completions.choices[0].text.strip()
-        response_text.config(state="normal")
-        response_text.delete("1.0", "end")
-        response_text.insert("end", response)
-        response_text.config(state="disabled")
-    except Exception as e:
-        response_text.config(state="normal")
-        response_text.delete("1.0", "end")
-        response_text.insert("end", f"Error: {e}")
-        response_text.config(state="disabled")
+    # Add the user's input to the chat history
+    chat_history.append(f"You: {user_input}")
+    
+    # Generate a response from the AI model
+    response = None
+    while response is None:
+        response = generate_response(prompt, chat_history, model)
+    
+    # Add the AI's response to the chat history
+    chat_history.append(f"AI: {response}")
+    
+    # Update the chat history box
+    chat_history_box.configure(state="normal")
+    chat_history_box.insert(tk.END, "\n".join(chat_history[-2:]) + "\n")
+    chat_history_box.configure(state="disabled")
+    
+# Set up the OpenAI API client
+api_key = "API_Key"
+openai.api_key = api_key
 
-# Create GUI window
-window = tk.Tk()
-window.title("GPT-3 Persona Generator")
+# Set up the AI model and prompt
+model = "davinci"
+prompt = "The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly. User:"
 
-# Create input label and text box for persona
-persona_label = tk.Label(window, text="Enter persona text:")
-persona_label.pack()
-persona_entry = tk.Text(window, width=50, height=10)
-persona_entry.pack()
+# Initialize the chat history
+chat_history = []
 
-# Create button to generate personality
-generate_button = tk.Button(window, text="Generate Personality", command=generate_personality)
-generate_button.pack()
+# Create the GUI
+root = tk.Tk()
+root.title("Chatbot")
 
-# Create output label and text box for GPT-3 response
-response_label = tk.Label(window, text="GPT-3 Response:")
-response_label.pack()
-response_text = tk.Text(window, width=50, height=10, state="disabled")
-response_text.pack()
+# Create the chat history box
+chat_history_box = tk.Text(root, height=20, width=50)
+chat_history_box.configure(state="disabled")
+chat_history_box.pack()
 
-# Start GUI loop
-window.mainloop()
+# Create the user input box
+user_input_box = tk.Entry(root, width=50)
+user_input_box.bind("<Return>", send_message)
+user_input_box.pack()
+
+# Create the send button
+send_button = tk.Button(root, text="Send", command=send_message)
+send_button.pack()
+
+# Start the GUI
+root.mainloop()
