@@ -3,7 +3,7 @@ import openai
 
 
 # Load OpenAI API key from environment variable
-openai.api_key = "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"
+openai.api_key = "API_Key"
 
 # Define GPT-3 prompt with persona text
 model_engine = "text-davinci-002"
