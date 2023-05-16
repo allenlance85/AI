@@ -2,79 +2,81 @@ import openai
 import tkinter as tk
 import json
 
-def chat(prompt):
-    if prompt is None or prompt.strip() == "":
-        return "Please provide a prompt to start the conversation."
-    try:
-        response = openai.Completion.create(
-            engine="davinci",
-            prompt=prompt,
-            max_tokens=1024,
-            n=1,
-            stop=None,
-            temperature=0.5,
-        )
-        message = response.choices[0].text.strip()
-        return message
-    except Exception as e:
-        return f"An error occurred: {e}"
-    
-def generate_response(prompt, chat_history, model, temperature=0.5, max_tokens=100):
+# Define constants for AI model and prompt
+MODEL = "davinci"
+PROMPT = "The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly."
+
+# Define constants for error messages
+API_KEY_ERROR_MSG = "An error occurred with the API key. Please check your credentials and try again."
+API_ERROR_MSG = "An error occurred with the AI response. Please try again later."
+
+def generate_response(chat_history, model, temperature=0.5, max_tokens=100, retries=3):
     # Format the chat history as a single string
     chat_history_str = "\n".join(chat_history)
 
-    # Create the prompt for the AI
-    prompt_str = f"{prompt}\n{chat_history_str}\nUser:"
+    # Call OpenAI API
+    for i in range(retries):
+        try:
+            response = openai.Completion.create(
+                engine=model,
+                prompt=chat_history_str,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                n=1,
+                stop=None,
+                frequency_penalty=0,
+                presence_penalty=0
+            )
 
-    # Generate the AI's response
-    response = openai.Completion.create(
-        engine=model,
-        prompt=prompt_str,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        n=1,
-        stop=None,
-        frequency_penalty=0,
-        presence_penalty=0,
-        api_key=openai.api_key
-    )
-
-    # Extract the first choice from the response and return it
-    choice = response.choices[0].text
-    return choice.strip()
+            # Extract the first choice from the response and return it
+            choice = response.choices[0].text
+            return choice.strip()
+        except Exception as e:
+            if i == retries - 1:
+                return f"{API_ERROR_MSG} ({e})"
 
 def send_message(event=None):
     # Get the user's input
     user_input = user_input_box.get()
-    
+
+    # Validate user input
+    if not user_input or user_input.strip() == "":
+        return
+
     # Clear the user input box
     user_input_box.delete(0, tk.END)
-    
+
     # Add the user's input to the chat history
-    chat_history.append(f"You: {user_input}")
-    
+    chat_history.append(f"User: {user_input}")
+
     # Generate a response from the AI model
-    response = None
-    while response is None:
-        response = generate_response(prompt, chat_history, model)
-    
+    response = generate_response(chat_history, MODEL)
+
     # Add the AI's response to the chat history
     chat_history.append(f"AI: {response}")
-    
+
     # Update the chat history box
     chat_history_box.configure(state="normal")
     chat_history_box.insert(tk.END, "\n".join(chat_history[-2:]) + "\n")
     chat_history_box.configure(state="disabled")
-    
-# Load API key from JSON file
-with open('secrets.json') as f:
-    secrets = json.load(f)
-api_key = secrets['OPENAI_API_KEY']
-openai.api_key = api_key
 
-# Set up the AI model and prompt
-model = "davinci"
-prompt = "The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly. User:"
+def initialize_chat():
+    # Load API key from JSON file
+    try:
+        with open('secrets.json') as f:
+            secrets = json.load(f)
+            api_key = secrets['OPENAI_API_KEY']
+            openai.api_key = api_key
+    except Exception as e:
+        chat_history.append(f"{API_KEY_ERROR_MSG} ({e})")
+
+    # Add welcome message to chat history
+    chat_history.append(PROMPT)
+
+    # Update the chat history box
+    chat_history_box.configure(state="normal")
+    chat_history_box.insert(tk.END, "\n".join(chat_history) + "\n")
+    chat_history_box.configure(state="disabled")
 
 # Initialize the chat history
 chat_history = []
@@ -88,6 +90,9 @@ chat_history_box = tk.Text(root, height=20, width=50)
 chat_history_box.configure(state="disabled")
 chat_history_box.pack()
 
+# Initialize the chat
+initialize_chat()
+
 # Create the user input box
 user_input_box = tk.Entry(root, width=50)
 user_input_box.bind("<Return>", send_message)
@@ -97,5 +102,5 @@ user_input_box.pack()
 send_button = tk.Button(root, text="Send", command=send_message)
 send_button.pack()
 
-# Start the GUI
+#Start the GUI
 root.mainloop()
